@@ -254,6 +254,24 @@ def require_station_session(request):
     }, None
 
 
+def require_shift_session(request):
+    shift_id = request.session.get("shift_id")
+    shift_name = request.session.get("shift_name")
+
+    if not request.user.is_authenticated:
+        return None, redirect("login")
+
+    if not shift_id or not shift_name:
+        logout(request)
+        messages.info(request, "Сессия истекла. Войдите снова.")
+        return None, redirect("login")
+
+    return {
+        "shift_id": shift_id,
+        "shift_name": shift_name,
+    }, None
+
+
 
 def csrf_failure_view(request, reason=""):
     return render(request, "defects_app/csrf_error.html", {
@@ -369,11 +387,7 @@ def custom_login_view(request):
 
             # ВАЖНО: проверяем доступ к выбранному отделу ДО login()
             if not user_has_department_access(user, department):
-                messages.error(
-                    request,
-                    "У вас нет прав для выбранного отдела. Проверьте правильность выбора."
-                )
-                return render(request, "registration/login.html", {"form": form})
+                return render(request, "403.html", status=403)
 
             # Только после проверки прав — логиним
             login(request, user)
@@ -2502,7 +2516,7 @@ def live_cars_view(request):
 
 @login_required
 def logistics_live_cars_view(request):
-    session_data, redirect_response = require_station_session(request)
+    session_data, redirect_response = require_shift_session(request)
     if redirect_response:
         return redirect_response
     if not (is_log_worker(request.user) or is_log_manager(request.user) or is_manager_user(request.user)):
