@@ -3701,6 +3701,31 @@ def qrqc_snp_api_view(request):
 
             for status_item in day_snp_statuses:
                 car = status_item.avto
+
+                comments_qs = SnpDefectComment.objects.filter(
+                    avto=car
+                ).select_related(
+                    "defect",
+                    "defect__tip",
+                    "defect__oblast"
+                ).order_by("id")
+
+                comments = []
+
+                for item in comments_qs:
+                    defect_text = ""
+
+                    if item.defect:
+                        tip = item.defect.tip.nazvanie if item.defect.tip else ""
+                        oblast = item.defect.oblast.nazvanie if item.defect.oblast else ""
+
+                        defect_text = f"{tip} / {oblast}".strip(" /")
+
+                    if defect_text:
+                        comments.append(f"{defect_text}: {item.comment}")
+                    else:
+                        comments.append(item.comment)
+
                 latest_day_snp_cars.append({
                     "vin": car.vin if car else "",
                     "model": car.model.nazvanie if car and car.model else "",
