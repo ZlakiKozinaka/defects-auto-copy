@@ -242,9 +242,12 @@
     </div>
 
     <script src="{% static 'js/vin_prefixes.js' %}"></script>
+    <script src="{% static 'js/scanner_layout_fix.js' %}"></script>
 
     <script>
         initVinLogic("id_vin", "id_model", "vin-boxes");
+        bindScannerNormalization(document.getElementById("id_perednij_dvigatel"));
+        bindScannerNormalization(document.getElementById("id_zadnij_dvigatel"));
 
         function clearForm() {
             window.location.href = "/dvigatel/";

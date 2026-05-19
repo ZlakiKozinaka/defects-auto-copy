@@ -1,4 +1,5 @@
 from django import forms
+import re
 from .models import Avtomobili, Modeli, Smeny
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
@@ -186,12 +187,12 @@ class TelematikaForm(forms.Form):
             .strip()
         )
 
-        if len(telematika) < 10:
-            raise forms.ValidationError(
-                "Код телематики слишком короткий. Проверьте, что курсор стоял в поле до сканирования."
-            )
+        telematika_digits = re.sub(r"\D", "", telematika)
 
-        return telematika
+        if len(telematika_digits) != 15:
+            raise forms.ValidationError("Телематика должна состоять из 15 цифр.")
+
+        return telematika_digits
 
 class GlonassForm(forms.Form):
     glonass = forms.CharField(
@@ -208,6 +209,19 @@ class GlonassForm(forms.Form):
 
         if "SN:" not in value.upper() or "IMEI:" not in value.upper() or "ICCID:" not in value.upper():
             raise forms.ValidationError("Строка ГЛОНАСС должна содержать SN, IMEI и ICCID.")
+
+        sn_match = re.search(r"SN\s*:\s*([^;]+)", value, re.IGNORECASE)
+        imei_match = re.search(r"IMEI\s*:\s*([^;]+)", value, re.IGNORECASE)
+        iccid_match = re.search(r"ICCID\s*:\s*([^;]+)", value, re.IGNORECASE)
+
+        if not sn_match or len(re.sub(r"\D", "", sn_match.group(1))) != 12:
+            raise forms.ValidationError("Поле SN в ГЛОНАСС должно содержать 12 цифр.")
+
+        if not imei_match or len(re.sub(r"\D", "", imei_match.group(1))) != 15:
+            raise forms.ValidationError("Поле IMEI в ГЛОНАСС должно содержать 15 цифр.")
+
+        if not iccid_match or len(re.sub(r"\D", "", iccid_match.group(1))) != 19:
+            raise forms.ValidationError("Поле ICCID в ГЛОНАСС должно содержать 19 цифр.")
 
         return value
 

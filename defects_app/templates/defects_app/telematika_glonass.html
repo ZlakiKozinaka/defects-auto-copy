@@ -352,12 +352,26 @@
     </div>
 
     <script src="{% static 'js/vin_prefixes.js' %}"></script>
+    <script src="{% static 'js/scanner_layout_fix.js' %}"></script>
 
     <script>
         initVinLogic("id_vin", "id_model", "vin-boxes");
 
         function clearForm() {
             window.location.href = "/telematika-glonass/";
+        }
+
+        initScannerLayoutFix(["#id_telematika", "#id_glonass"]);
+
+        function normalizeGlonassScannerValue(value) {
+            return (value || "")
+                .toUpperCase()
+                .replace(/Ж(?=\s*(SN|HF|IMEI|ICCID)\b)/g, "; ")
+                .replace(/(SN|HF|IMEI|ICCID)Ж/g, "$1:")
+                .replace(/Ж(?=\s*$)/g, ";")
+                .replace(/Ж/g, ":")
+                .replace(/\s*;\s*/g, "; ")
+                .replace(/;\s*$/g, ";");
         }
 
         const vinInput = document.getElementById("id_vin");
@@ -415,10 +429,16 @@
 
         if (glonassInput && glonassForm) {
             glonassInput.addEventListener("input", function () {
+                const normalizedNow = normalizeGlonassScannerValue(glonassInput.value);
+                if (glonassInput.value !== normalizedNow) {
+                    glonassInput.value = normalizedNow;
+                }
+
                 clearTimeout(glonassScanTimer);
 
                 glonassScanTimer = setTimeout(function () {
-                    const value = glonassInput.value.trim().toUpperCase();
+                    const value = normalizeGlonassScannerValue(glonassInput.value.trim());
+                    glonassInput.value = value;
 
                     if (
                         value.includes("SN:") &&

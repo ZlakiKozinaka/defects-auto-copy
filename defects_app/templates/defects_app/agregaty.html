@@ -393,9 +393,11 @@
 </div>
 
 <script src="{% static 'js/vin_prefixes.js' %}"></script>
+    <script src="{% static 'js/scanner_layout_fix.js' %}"></script>
 
 <script>
     initVinLogic("id_vin", "id_model", "vin-boxes");
+    initScannerLayoutFix(["#id_perednij_dvigatel", "#id_batareya", "#id_zadnij_dvigatel"]);
 
     function clearForm() {
         window.location.href = "/agregaty/";

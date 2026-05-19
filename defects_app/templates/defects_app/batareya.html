@@ -256,9 +256,11 @@
     </div>
 
     <script src="{% static 'js/vin_prefixes.js' %}"></script>
+    <script src="{% static 'js/scanner_layout_fix.js' %}"></script>
 
     <script>
         initVinLogic("id_vin", "id_model", "vin-boxes");
+        bindScannerNormalization(document.getElementById("id_batareya"));
 
         function clearForm() {
             window.location.href = "/batareya/";
