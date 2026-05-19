@@ -3,6 +3,7 @@ import json
 import barcode
 import os
 import uuid
+from urllib.parse import urlencode
 from django.urls import reverse
 
 from PIL import Image, ImageOps
@@ -12,7 +13,7 @@ from django.db.models import Max
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.http import JsonResponse, HttpResponseForbidden
+from django.http import JsonResponse, HttpResponseForbidden, HttpResponseBadRequest
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout
@@ -2049,6 +2050,25 @@ def print_created_car_view(request, car_id):
         "Задний двигатель",
     ]
 
+    important_print_url = None
+    if session_data.get("station_id") == 1:
+        buffer_key = "important_sheet_car_ids"
+        car_ids_buffer = request.session.get(buffer_key, [])
+        if car.id not in car_ids_buffer:
+            car_ids_buffer.append(car.id)
+
+        if len(car_ids_buffer) >= 6:
+            request.session[buffer_key] = []
+            important_print_url = reverse("print_created_car_info_batch") + "?" + urlencode({
+                "car_ids": ",".join(str(buffer_car_id) for buffer_car_id in car_ids_buffer[:6])
+            })
+        else:
+            request.session[buffer_key] = car_ids_buffer
+
+        request.session.modified = True
+    else:
+        important_print_url = reverse("print_created_car_info", kwargs={"car_id": car.id})
+
     return render(request, "defects_app/print_created_car.html", {
         "car": car,
         "stations": stations,
@@ -2056,6 +2076,7 @@ def print_created_car_view(request, car_id):
         "plan_vin": plan_vin,
         "vin_barcode_svg": vin_barcode_svg,
         "kolichestvo_mest": kolichestvo_mest,
+        "important_print_url": important_print_url,
     })
 
 @login_required
@@ -2076,6 +2097,45 @@ def print_created_car_info_view(request, car_id):
         "plan_vin": plan_vin,
         "vin_barcode_svg": vin_barcode_svg,
         "kolichestvo_mest": kolichestvo_mest,
+    })
+
+
+@login_required
+def print_created_car_info_batch_view(request):
+    session_data, redirect_response = require_station_session(request)
+    if redirect_response:
+        return redirect_response
+    if not can_create_cars_and_print(request.user):
+        return HttpResponseForbidden("У вас нет прав на печать карточек автомобиля.")
+
+    car_ids_raw = request.GET.get("car_ids", "")
+    car_ids = [int(car_id.strip()) for car_id in car_ids_raw.split(",") if car_id.strip().isdigit()][:6]
+
+    if not car_ids:
+        return HttpResponseBadRequest("Не переданы данные для печати важного листа.")
+
+    cars = Avtomobili.objects.filter(id__in=car_ids)
+    cars_by_id = {car.id: car for car in cars}
+
+    print_rows = []
+    for car_id in car_ids:
+        car = cars_by_id.get(car_id)
+        if not car:
+            continue
+        plan_vin = PlanovyeVin.objects.filter(vin=car.vin).first()
+        kolichestvo_mest = "7" if "C2A7" in car.vin or (plan_vin and "/7_" in plan_vin.komplektaciya) else "5"
+        print_rows.append({
+            "car": car,
+            "plan_vin": plan_vin,
+            "vin_barcode_svg": generate_vin_barcode_svg(car.vin),
+            "kolichestvo_mest": kolichestvo_mest,
+        })
+
+    if not print_rows:
+        return HttpResponseBadRequest("Не удалось подготовить данные для печати важного листа.")
+
+    return render(request, "defects_app/print_created_car_info_batch.html", {
+        "print_rows": print_rows,
     })
 
 @login_required

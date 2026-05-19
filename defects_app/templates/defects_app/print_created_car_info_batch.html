@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Печать важного листа (6 машин)</title>
+    <style>
+        @page { size: A4 portrait; margin: 10mm; }
+        body { font-family: Arial, sans-serif; margin: 0; color: #000; }
+        .no-print { text-align: center; margin: 12px 0; }
+        .btn { padding: 9px 16px; border: none; border-radius: 8px; background: #b9a7cc; cursor: pointer; }
+        .sheet { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .sheet th, .sheet td { border: 1px solid #000; vertical-align: top; padding: 6px; font-size: 13px; }
+        .col-num { width: 6%; text-align: center; font-weight: bold; }
+        .col-info { width: 60%; }
+        .col-barcode { width: 34%; }
+        .car-row { height: 46mm; }
+        .label { font-weight: bold; }
+        .small { font-size: 12px; }
+        .barcode-wrap svg { width: 100%; height: 58px; }
+        @media print { .no-print { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <button class="btn" onclick="window.print()">Печать</button>
+    </div>
+
+    <table class="sheet">
+        <thead>
+            <tr>
+                <th class="col-num">№</th>
+                <th class="col-info">Информация по комплектации</th>
+                <th class="col-barcode">Штрих-код / дата создания</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in print_rows %}
+                <tr class="car-row">
+                    <td class="col-num">{{ forloop.counter }}</td>
+                    <td class="col-info">
+                        <div><span class="label">VIN:</span> {{ row.car.vin }}</div>
+                        <div><span class="label">Модель:</span> {{ row.plan_vin.model|default:"—" }}</div>
+                        <div><span class="label">Комплектация:</span> {{ row.plan_vin.komplektaciya|default:"—" }}</div>
+                        <div><span class="label">Кол-во мест:</span> {{ row.kolichestvo_mest }}</div>
+                        <div><span class="label">Цвет кузова:</span> {{ row.plan_vin.cvet_kuzova|default:"—" }}</div>
+                        <div><span class="label">Цвет салона:</span> {{ row.plan_vin.cvet_salona|default:"—" }}</div>
+                    </td>
+                    <td class="col-barcode">
+                        <div class="barcode-wrap">{{ row.vin_barcode_svg|safe }}</div>
+                        <div class="small"><span class="label">Дата и время создания:</span> {{ row.car.data_sozdaniya|date:"d.m.Y H:i:s" }}</div>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        window.onload = function () {
+            setTimeout(function () { window.print(); }, 300);
+        };
+    </script>
+</body>
+</html>

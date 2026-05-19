@@ -238,11 +238,16 @@
     </div>
 
     <script>
-        const infoPrintUrl = "{% url 'print_created_car_info' car.id %}";
+        const infoPrintUrl = "{% if important_print_url %}{{ important_print_url }}{% endif %}";
         let infoWindowOpened = false;
 
         function openInfoPrintWindow() {
             const infoPrintStatus = document.getElementById("info-print-status");
+            if (!infoPrintUrl) {
+                infoPrintStatus.textContent = "Важный лист будет открыт автоматически после создания 6-й машины.";
+                infoPrintStatus.style.color = "#9a6700";
+                return;
+            }
             const infoWindow = window.open(infoPrintUrl, "_blank");
 
             if (infoWindow) {
