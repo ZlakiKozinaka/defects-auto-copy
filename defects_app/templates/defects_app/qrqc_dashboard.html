@@ -547,9 +547,8 @@
                         <tr>
                             <th>VIN</th>
                             <th>Модель</th>
-                            <th>Дата СНП</th>
-                            <th>Кто перевёл</th>
-                        </tr>
+                            <th>Время СНП</th>
+                            <th>Причина</th>
                     </thead>
                     <tbody id="latestDaySnpCarsTable"></tbody>
                 </table>
@@ -950,13 +949,17 @@
             }
 
             items.forEach(item => {
+                const comments = item.comments && item.comments.length > 0
+                    ? item.comments.join("; ")
+                    : "Причина не указана";
+
                 const row = document.createElement("tr");
 
                 row.innerHTML = `
                     <td>${item.vin || ""}</td>
                     <td>${item.model || ""}</td>
-                    <td style="text-align:center; font-weight:bold;">${item.snp_date || ""}</td>
-                    <td>${item.who || "-"}</td>
+                    <td style="text-align:center; font-weight:bold;">${item.when || ""}</td>
+                    <td>${comments}</td>
                 `;
 
                 tbody.appendChild(row);
