@@ -1047,7 +1047,7 @@ def complete_bestenevaya(request, car_id):
     is_manager = is_manager_user(request.user)
     station_id = session_data["station_id"]
 
-    if not can_create_cars_and_print(request.user):
+    if not (can_create_cars_and_print(request.user) or can_create_defects(request.user)):
         return HttpResponseForbidden("У вас нет прав отмечать прохождение Бестеневой.")
 
     car = get_object_or_404(Avtomobili, id=car_id)
