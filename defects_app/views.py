@@ -178,10 +178,15 @@ def user_has_department_access(user, department_key):
     departments = get_user_departments(user)
     return department_key in departments
 
+def render_access_denied(request, message=None):
+    return render(request, "403.html", {
+        "access_denied_message": message or "Проверьте, что выбран правильный отдел и роль пользователя.",
+    }, status=403)
+
 @login_required
 def department_section_view(request, section):
     if not user_has_department_access(request.user, section):
-        return HttpResponseForbidden("Нет доступа к этому разделу.")
+        return render_access_denied(request, "Вы не имеете доступа к этому отделу. Проверьте, что выбрали правильный отдел.")
 
     section_titles = {
         "otk": "ОТК",
@@ -369,11 +374,8 @@ def custom_login_view(request):
 
             # ВАЖНО: проверяем доступ к выбранному отделу ДО login()
             if not user_has_department_access(user, department):
-                messages.error(
-                    request,
-                    "У вас нет прав для выбранного отдела. Проверьте правильность выбора."
-                )
-                return render(request, "registration/login.html", {"form": form})
+                return render_access_denied(request, "Вы не имеете доступа к выбранному отделу. Проверьте, что выбрали правильный отдел.")
+
 
             # Только после проверки прав — логиним
             login(request, user)
@@ -2145,7 +2147,7 @@ def open_station_for_department_view(request, station_id):
             allowed = True
 
     if not allowed:
-        return HttpResponseForbidden("У вас нет доступа к этой станции.")
+        return render_access_denied(request, "У вас нет доступа к выбранной станции для этого отдела.")
 
     # Смена уже должна быть выбрана на логине
     shift_id = request.session.get("shift_id")
@@ -2502,11 +2504,15 @@ def live_cars_view(request):
 
 @login_required
 def logistics_live_cars_view(request):
-    session_data, redirect_response = require_station_session(request)
-    if redirect_response:
-        return redirect_response
     if not (is_log_worker(request.user) or is_log_manager(request.user) or is_manager_user(request.user)):
-        return HttpResponseForbidden("У вас нет доступа к экрану логистики.")
+        return render_access_denied(request, "У вас нет доступа к экрану логистики.")
+
+    shift_id = request.session.get("shift_id")
+    shift_name = request.session.get("shift_name")
+    if not shift_id or not shift_name:
+        logout(request)
+        messages.info(request, "Сессия истекла. Войдите снова.")
+        return redirect("login")
 
     cars_raw = Avtomobili.objects.filter(
         proshla_bestenevaya=False

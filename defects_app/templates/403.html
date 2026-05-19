@@ -22,7 +22,7 @@
 <body>
     <div class="box">
         <h1>У вас нет доступа</h1>
-        <p>Проверьте, что выбран правильный отдел и роль пользователя.</p>
+        <p>{{ access_denied_message|default:"Проверьте, что выбран правильный отдел и роль пользователя." }}</p>
         <a class="btn" href="/department-hub/">Вернуться к выбору отдела</a>
         <a class="btn" href="/accounts/login/">На страницу входа</a>
     </div>
