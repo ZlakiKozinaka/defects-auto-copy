@@ -3704,8 +3704,8 @@ def qrqc_snp_api_view(request):
                 latest_day_snp_cars.append({
                     "vin": car.vin if car else "",
                     "model": car.model.nazvanie if car and car.model else "",
-                    "snp_date": status_item.data_statusa.strftime("%d.%m.%Y %H:%M"),
-                    "who": status_item.kto_izmenil or "",
+                    "when": status_item.data_statusa.strftime("%H:%M"),
+                    "comments": comments,
                 })
         except ValueError:
             latest_day_snp_cars = []
