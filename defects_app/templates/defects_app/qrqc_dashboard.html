@@ -94,6 +94,12 @@
             gap: 18px;
         }
 
+        .third-dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr 1.5fr;
+            gap: 18px;
+        }
+
         .bottom-dashboard-grid .report-card {
             width: auto;
         }
@@ -521,7 +527,7 @@
             </a>
         </div>
 
-        <div class="bottom-dashboard-grid" style="margin-top: 18px;">
+        <div class="third-dashboard-grid" style="margin-top: 18px;">
 
             <a class="report-card" href="#">
                 <div class="card-title">СНП по моделям</div>
@@ -530,6 +536,23 @@
                 <div class="chart-box snp-chart-box">
                     <canvas id="snpModelsChart"></canvas>
                 </div>
+            </a>
+
+            <a class="report-card" href="#">
+                <div class="card-title">СНП за день (последние 10)</div>
+                <div class="card-subtitle">10 последних машин, ушедших на СНП за выбранный день</div>
+
+                <table class="top-defects-table snp-oldest-table">
+                    <thead>
+                        <tr>
+                            <th>VIN</th>
+                            <th>Модель</th>
+                            <th>Дата СНП</th>
+                            <th>Кто перевёл</th>
+                        </tr>
+                    </thead>
+                    <tbody id="latestDaySnpCarsTable"></tbody>
+                </table>
             </a>
 
             <a class="report-card" href="#">
@@ -805,10 +828,14 @@
         let snpModelsChart = null;
 
         async function loadSnpBlocks() {
-            const response = await fetch("/reports/qrqc/snp-api/");
+            const month = getSelectedMonth();
+            const day = getSelectedDayForApi(month);
+
+            const response = await fetch(`/reports/qrqc/snp-api/?day=${day}`);
             const data = await response.json();
 
             renderSnpModelsChart(data.models_chart);
+            renderLatestDaySnpCars(data.latest_day_snp_cars);
             renderOldestSnpCars(data.oldest_cars);
         }
 
@@ -901,6 +928,35 @@
                     <td>${item.model || ""}</td>
                     <td style="text-align:center; font-weight:bold;">${item.days_on_snp}</td>
                     <td>${comments}</td>
+                `;
+
+                tbody.appendChild(row);
+            });
+        }
+
+        function renderLatestDaySnpCars(items) {
+            const tbody = document.getElementById("latestDaySnpCarsTable");
+            if (!tbody) return;
+
+            tbody.innerHTML = "";
+
+            if (!items || items.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="empty-top-defect">Нет машин на СНП за выбранный день</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            items.forEach(item => {
+                const row = document.createElement("tr");
+
+                row.innerHTML = `
+                    <td>${item.vin || ""}</td>
+                    <td>${item.model || ""}</td>
+                    <td style="text-align:center; font-weight:bold;">${item.snp_date || ""}</td>
+                    <td>${item.who || "-"}</td>
                 `;
 
                 tbody.appendChild(row);
