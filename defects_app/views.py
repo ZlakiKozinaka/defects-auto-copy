@@ -3607,6 +3607,7 @@ def qrqc_snp_api_view(request):
     response = manager_required_view(request)
     if response:
         return response
+    selected_day = request.GET.get("day")
 
     latest_status = StatusAvto.objects.filter(
         avto=OuterRef("pk")
@@ -3681,9 +3682,38 @@ def qrqc_snp_api_view(request):
             "comments": comments,
         })
 
+    latest_day_snp_cars = []
+    if selected_day:
+        try:
+            selected_date = datetime.strptime(selected_day, "%Y-%m-%d").date()
+            day_start = datetime.combine(selected_date, time.min)
+            day_end = datetime.combine(selected_date, time.max)
+
+            day_snp_statuses = (
+                StatusAvto.objects.filter(
+                    status="СНП",
+                    data_statusa__gte=day_start,
+                    data_statusa__lte=day_end,
+                )
+                .select_related("avto", "avto__model")
+                .order_by("-data_statusa")[:10]
+            )
+
+            for status_item in day_snp_statuses:
+                car = status_item.avto
+                latest_day_snp_cars.append({
+                    "vin": car.vin if car else "",
+                    "model": car.model.nazvanie if car and car.model else "",
+                    "snp_date": status_item.data_statusa.strftime("%d.%m.%Y %H:%M"),
+                    "who": status_item.kto_izmenil or "",
+                })
+        except ValueError:
+            latest_day_snp_cars = []
+
     return JsonResponse({
         "models_chart": models_chart,
         "oldest_cars": oldest_cars,
+        "latest_day_snp_cars": latest_day_snp_cars,
     })
 
 PRODUCTION_INTERVALS = [
