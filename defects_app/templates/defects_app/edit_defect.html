@@ -287,6 +287,8 @@
         <button type="submit" class="btn">Сохранить изменения</button>
             {% if from_page == "quality" %}
                 <a href="/quality/?car_id={{ car.id }}" class="btn-secondary">Отмена</a>
+            {% elif from_page == "vh1" %}
+                <a href="/vh1/?car_id={{ car.id }}" class="btn-secondary">Отмена</a>
             {% elif from_page == "okline" %}
                 <a href="/okline/?car_id={{ car.id }}" class="btn-secondary">Отмена</a>
             {% elif from_page == "dovodka" %}

@@ -267,7 +267,7 @@
         <div class="block">
             <div class="actions">
                 {% if car %}
-                    <a href="{% url 'create_defect' car.id %}?from_page=quality" class="btn">
+                    <a href="{% url 'create_defect' car.id %}?from_page={{ from_page|default:'quality' }}" class="btn">
                         Создать новый дефект
                     </a>
 
@@ -358,12 +358,12 @@
 
                 if (editBtn && selectedDefectId) {
                     editBtn.classList.remove("action-link-disabled");
-                    editBtn.href = `/edit-defect/${selectedDefectId}/?from_page=quality`;
+                    editBtn.href = `/edit-defect/${selectedDefectId}/?from_page={{ from_page|default:'quality' }}`;
                 }
 
                 if (deleteBtn && selectedDefectId) {
                     deleteBtn.classList.remove("action-link-disabled");
-                    deleteBtn.href = `/delete-defect/${selectedDefectId}/?from_page=quality`;
+                    deleteBtn.href = `/delete-defect/${selectedDefectId}/?from_page={{ from_page|default:'quality' }}`;
                 }
             });
         });

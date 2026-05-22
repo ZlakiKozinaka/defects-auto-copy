@@ -206,6 +206,7 @@ def get_station_redirect_name(station_id):
     station_map = {
         1: "home",                 # Бестеневая
         2: "okline",
+        13: "vh1",
         3: "telematika_glonass",
         4: "telematika_glonass",
         5: "agregaty",
@@ -219,6 +220,18 @@ def get_station_redirect_name(station_id):
         return "quality"
 
     return station_map.get(station_id, "home")
+
+
+def is_vh1_station(station_id=None, station_name=None):
+    if station_id == 13:
+        return True
+
+    if not station_name:
+        return False
+
+    normalized_name = str(station_name).strip().lower().replace("-", " ")
+    normalized_name = " ".join(normalized_name.split())
+    return normalized_name in {"вх 1", "вх1", "входной контроль 1"}
 
 def get_user_departments(user):
     departments = set()
@@ -576,6 +589,11 @@ def create_defect(request, car_id):
     if from_page == "quality" and station_id not in [8, 9, 10]:
         return HttpResponseForbidden("У вас нет доступа к созданию дефектов со станции качества.")
 
+    station_name = session_data.get("station_name")
+
+    if from_page == "vh1" and not is_vh1_station(station_id=station_id, station_name=station_name):
+        return HttpResponseForbidden("У вас нет доступа к созданию дефектов с ВХ1.")
+
     if from_page == "dovodka" and station_id != 11:
         return HttpResponseForbidden("У вас нет доступа к созданию дефектов с Доводки.")
 
@@ -606,6 +624,8 @@ def create_defect(request, car_id):
                 return redirect(f"/okline/?car_id={car.id}")
             elif from_page == "quality":
                 return redirect(f"/quality/?car_id={car.id}")
+            elif from_page == "vh1":
+                return redirect(f"/vh1/?car_id={car.id}")
             elif from_page == "dovodka":
                 return redirect(f"/dovodka/?car_id={car.id}")
             return redirect(f"/?car_id={car.id}")
@@ -675,6 +695,9 @@ def edit_defect(request, defect_id):
             if from_page == "quality":
                 return redirect(f"/quality/?car_id={car.id}")
 
+            if from_page == "vh1":
+                return redirect(f"/vh1/?car_id={car.id}")
+
             if from_page == "okline":
                 return redirect(f"/okline/?car_id={car.id}")
             
@@ -711,6 +734,9 @@ def delete_defect(request, defect_id):
 
         if from_page == "okline":
             return redirect(f"/okline/?car_id={car.id}")
+
+        if from_page == "vh1":
+            return redirect(f"/vh1/?car_id={car.id}")
 
         return redirect(f"/?car_id={car.id}")
 
@@ -1678,6 +1704,84 @@ def quality_view(request):
         "defects": defects,
         "vin_prefixes": VIN_PREFIXES,
         "is_manager": is_manager,
+        "from_page": "quality",
+    })
+
+
+@login_required
+def vh1_view(request):
+    session_data, redirect_response = require_station_session(request)
+    if redirect_response:
+        return redirect_response
+
+    station_id = session_data["station_id"]
+    is_manager = can_edit_delete_defects(request.user)
+
+    station_name = session_data.get("station_name")
+    if not is_vh1_station(station_id=station_id, station_name=station_name):
+        return HttpResponseForbidden("Для вашей станции эта форма недоступна.")
+
+    if not can_create_defects(request.user):
+        return HttpResponseForbidden("Для вашей станции эта форма недоступна.")
+
+    form = CarSearchForm()
+    car = None
+    defects = []
+
+    car_id = request.GET.get("car_id")
+    if car_id:
+        car = get_object_or_404(Avtomobili, id=car_id)
+        form = CarSearchForm(initial={
+            "vin": car.vin,
+            "model": car.model
+        })
+        defects = Defekty.objects.filter(avto=car).order_by("-data")
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "find":
+            form = CarSearchForm(request.POST)
+
+            if form.is_valid():
+                vin = form.cleaned_data["vin"]
+                existing_car = Avtomobili.objects.filter(vin=vin).first()
+
+                if existing_car:
+                    messages.success(request, "Машина найдена.")
+                    return redirect(f"/vh1/?car_id={existing_car.id}")
+
+                plan_vin = PlanovyeVin.objects.filter(vin=vin).first()
+                if not plan_vin:
+                    messages.error(request, "Машина с таким VIN не найдена в созданных и плановых VIN.")
+                    return render(request, "defects_app/quality.html", {
+                        "form": form,
+                        "car": None,
+                        "defects": [],
+                        "vin_prefixes": VIN_PREFIXES,
+                        "is_manager": is_manager,
+                        "from_page": "vh1",
+                    })
+
+                model_name = plan_vin.model.strip()
+                model_obj, _ = Modeli.objects.get_or_create(nazvanie=model_name)
+
+                created_car = Avtomobili.objects.create(
+                    vin=vin,
+                    model=model_obj,
+                    kto_sozdal=request.user.username,
+                    data_sozdaniya=timezone.now(),
+                )
+                messages.success(request, "Машина найдена в плановых VIN и создана для ВХ1.")
+                return redirect(f"/vh1/?car_id={created_car.id}")
+
+    return render(request, "defects_app/quality.html", {
+        "form": form,
+        "car": car,
+        "defects": defects,
+        "vin_prefixes": VIN_PREFIXES,
+        "is_manager": is_manager,
+        "from_page": "vh1",
     })
 
 
@@ -2199,6 +2303,10 @@ def open_station_for_department_view(request, station_id):
     else:
         # ОТК
         if station_id in [1, 2, 8, 9, 10, 11] and can_create_defects(user):
+            allowed = True
+
+        # ВХ1
+        if can_create_defects(user) and is_vh1_station(station_id=station.id, station_name=station.nazvanie):
             allowed = True
 
         # Агрегаты
