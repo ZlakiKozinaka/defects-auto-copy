@@ -654,7 +654,10 @@ def check_vin(request):
     if len(vin) != 17:
         return JsonResponse({"found": False})
 
-    car = Avtomobili.objects.filter(vin=vin).first()
+    car = Avtomobili.objects.filter(
+        vin=vin,
+        created_on_station_1=True
+    ).first()
 
     if car:
         return JsonResponse({
@@ -821,7 +824,10 @@ def okline_view(request):
 
             if form.is_valid():
                 vin = form.cleaned_data["vin"]
-                car = Avtomobili.objects.filter(vin=vin).first()
+                car = Avtomobili.objects.filter(
+                    vin=vin,
+                    created_on_station_1=True
+                ).first()
 
                 if car:
                     return redirect(f"/okline/?car_id={car.id}")
@@ -1141,7 +1147,10 @@ def telematika_view(request):
 
             if form.is_valid():
                 vin = form.cleaned_data["vin"]
-                car = Avtomobili.objects.filter(vin=vin).first()
+                car = Avtomobili.objects.filter(
+                    vin=vin,
+                    created_on_station_1=True
+                ).first()
 
                 if car:
                     messages.success(request, "Машина найдена.")
@@ -1244,7 +1253,10 @@ def glonass_view(request):
 
             if form.is_valid():
                 vin = form.cleaned_data["vin"]
-                car = Avtomobili.objects.filter(vin=vin).first()
+                car = Avtomobili.objects.filter(
+                    vin=vin,
+                    created_on_station_1=True
+                ).first()
 
                 if car:
                     messages.success(request, "Машина найдена.")
@@ -1377,7 +1389,10 @@ def telematika_glonass_view(request):
 
             if form.is_valid():
                 vin = form.cleaned_data["vin"]
-                car = Avtomobili.objects.filter(vin=vin).first()
+                car = Avtomobili.objects.filter(
+                    vin=vin,
+                    created_on_station_1=True
+                ).first()
 
                 if car:
                     messages.success(request, "Машина найдена.")
@@ -1552,7 +1567,10 @@ def agregaty_view(request):
 
             if form.is_valid():
                 vin = form.cleaned_data["vin"]
-                car = Avtomobili.objects.filter(vin=vin).first()
+                car = Avtomobili.objects.filter(
+                    vin=vin,
+                    created_on_station_1=True
+                ).first()
 
                 if car:
                     return redirect(f"/agregaty/?car_id={car.id}")
@@ -1691,7 +1709,10 @@ def quality_view(request):
 
             if form.is_valid():
                 vin = form.cleaned_data["vin"]
-                existing_car = Avtomobili.objects.filter(vin=vin).first()
+                existing_car = Avtomobili.objects.filter(
+                    vin=vin,
+                    created_on_station_1=True
+                ).first()
 
                 if existing_car:
                     messages.success(request, "Машина найдена.")
@@ -1779,6 +1800,7 @@ def vh1_view(request):
                     model=model_obj,
                     kto_sozdal=request.user.username,
                     data_sozdaniya=timezone.now(),
+                    created_on_station_1=False,
                 )
                 messages.success(request, "Машина найдена в плановых VIN и создана для ВХ1.")
                 return redirect(f"/vh1/?car_id={created_car.id}")
@@ -1836,7 +1858,10 @@ def dovodka_view(request):
             form = CarSearchForm(request.POST)
             if form.is_valid():
                 vin = form.cleaned_data["vin"]
-                car = Avtomobili.objects.filter(vin=vin).first()
+                car = Avtomobili.objects.filter(
+                    vin=vin,
+                    created_on_station_1=True
+                ).first()
 
                 if car:
                     return redirect(f"/dovodka/?car_id={car.id}")
@@ -2031,6 +2056,19 @@ def create_car_view(request):
             existing_car = Avtomobili.objects.filter(vin=vin).first()
 
             if existing_car:
+                if not existing_car.created_on_station_1:
+                    existing_car.created_on_station_1 = True
+                    existing_car.kto_sozdal = request.user.username
+                    existing_car.data_sozdaniya = timezone.now()
+                    existing_car.save(update_fields=[
+                        "created_on_station_1",
+                        "kto_sozdal",
+                        "data_sozdaniya",
+                    ])
+
+                    messages.success(request, "Машина успешно создана на станции 1.")
+                    return redirect("print_created_car", car_id=existing_car.id)
+
                 messages.info(request, "Машина с таким VIN уже существует.")
                 return redirect(f"/create-car/?car_id={existing_car.id}")
 
@@ -2418,7 +2456,10 @@ def snp_orders_view(request):
 
             if form.is_valid():
                 vin = form.cleaned_data["vin"]
-                car = Avtomobili.objects.filter(vin=vin).first()
+                car = Avtomobili.objects.filter(
+                    vin=vin,
+                    created_on_station_1=True
+                ).first()
 
                 if not car:
                     messages.error(request, "Машина с таким VIN не найдена.")

@@ -41,6 +41,22 @@
             border-left: 10px solid #b9a7cc;
         }
 
+        .card-vh1 {
+            border-left-color: #f59e0b;
+            background: #fff7ed;
+        }
+
+        .vh1-badge {
+            display: inline-block;
+            margin-bottom: 12px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: #fed7aa;
+            color: #7c2d12;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
         .vin {
             font-size: 24px;
             font-weight: bold;
@@ -104,8 +120,11 @@
         {% if cars %}
             <div class="cards">
                 {% for item in cars %}
-                    <div class="card">
+                    <div class="card {% if not item.car.created_on_station_1 %}card-vh1{% endif %}">
                         <div class="vin">{{ item.car.vin }}</div>
+                        {% if not item.car.created_on_station_1 %}
+                            <div class="vh1-badge">ВХ1 — ожидает создания на СТ1</div>
+                        {% endif %}
 
                         <div class="info">
                             <strong>Цвет кузова:</strong>
@@ -121,10 +140,16 @@
                             <strong>Количество мест:</strong> {{ item.kolichestvo_mest }}
                         </div>
 
-                        <div class="timer"
-                             data-created="{{ item.car.data_sozdaniya|date:'c' }}">
-                            00:00:00
-                        </div>
+                        {% if item.car.created_on_station_1 %}
+                            <div class="timer"
+                                data-created="{{ item.car.data_sozdaniya|date:'c' }}">
+                                00:00:00
+                            </div>
+                        {% else %}
+                            <div class="timer" style="color:#92400e; font-size:22px;">
+                                Ожидает СТ1
+                            </div>
+                        {% endif %}
                     </div>
                 {% endfor %}
             </div>

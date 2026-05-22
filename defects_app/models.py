@@ -97,6 +97,7 @@ class Avtomobili(models.Model):
     vin = models.CharField(max_length=17, unique=True, verbose_name="VIN")
     model = models.ForeignKey(Modeli, on_delete=models.PROTECT, verbose_name="Модель")
     data_sozdaniya = models.DateTimeField(default=timezone.now, verbose_name="Дата создания")
+    created_on_station_1 = models.BooleanField(default=True, verbose_name="Создана на станции 1")
     kto_sozdal = models.CharField(max_length=150, blank=True, null=True, verbose_name="Кто создал машину")
     proshla_bestenevaya = models.BooleanField(default=False, verbose_name="Прошла Бестеневую")
     data_prohoda_bestenevaya = models.DateTimeField(blank=True, null=True, verbose_name="Дата прохода Бестеневой")
@@ -422,7 +423,9 @@ class DefectPhoto(models.Model):
         "Avtomobili",
         on_delete=models.CASCADE,
         related_name="defect_photos",
-        verbose_name="Автомобиль"
+        verbose_name="Автомобиль",
+        blank=True,
+        null=True,
     )
 
     image = models.ImageField(
