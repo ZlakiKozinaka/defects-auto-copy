@@ -449,7 +449,7 @@ def home(request):
         return redirect_response
 
     station_id = session_data["station_id"]
-    is_manager = is_manager_user(request.user)
+    is_manager = can_edit_delete_defects(request.user)
 
     if not can_create_defects(request.user):
         return HttpResponseForbidden("У вас нет доступа к рабочей вкладке ОТК.")
@@ -727,7 +727,7 @@ def okline_view(request):
     if redirect_response:
         return redirect_response
 
-    is_manager = is_manager_user(request.user)
+    is_manager = can_edit_delete_defects(request.user)
 
     station_id = session_data["station_id"]
     if not can_create_defects(request.user):
@@ -1045,7 +1045,7 @@ def complete_bestenevaya(request, car_id):
     if redirect_response:
         return redirect_response
 
-    is_manager = is_manager_user(request.user)
+    is_manager = can_edit_delete_defects(request.user)
     station_id = session_data["station_id"]
 
     if not (can_create_cars_and_print(request.user) or can_create_defects(request.user)):
@@ -1631,7 +1631,7 @@ def quality_view(request):
         return redirect_response
 
     station_id = session_data["station_id"]
-    is_manager = is_manager_user(request.user)
+    is_manager = can_edit_delete_defects(request.user)
 
     if not can_create_defects(request.user):
         return HttpResponseForbidden("Для вашей станции эта форма недоступна.")
