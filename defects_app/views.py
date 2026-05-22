@@ -1848,6 +1848,8 @@ def create_car_view(request):
 
     last_created_cars_raw = Avtomobili.objects.order_by("-data_sozdaniya")[:10]
 
+    important_sheet_count = len(request.session.get("important_sheet_car_ids", []))
+
     last_created_cars = []
     for created_car in last_created_cars_raw:
         plan = PlanovyeVin.objects.filter(vin=created_car.vin).first()
@@ -1884,6 +1886,7 @@ def create_car_view(request):
                 "search_result_plan": search_result_plan,
                 "search_not_found": search_not_found,
                 "show_search_modal": show_search_modal,
+                "important_sheet_count": important_sheet_count,
             })
 
         form = CarSearchForm(request.POST)
@@ -1910,6 +1913,7 @@ def create_car_view(request):
                     "search_result_plan": search_result_plan,
                     "search_not_found": search_not_found,
                     "show_search_modal": show_search_modal,
+                    "important_sheet_count": important_sheet_count,
                 })
 
             existing_car = Avtomobili.objects.filter(vin=vin).first()
@@ -1953,6 +1957,7 @@ def create_car_view(request):
         "search_result_plan": search_result_plan,
         "search_not_found": search_not_found,
         "show_search_modal": show_search_modal,
+        "important_sheet_count": important_sheet_count,
     })
 
 
@@ -2051,7 +2056,7 @@ def print_created_car_view(request, car_id):
     ]
 
     important_print_url = None
-    if session_data.get("station_id") == 1:
+    if session_data.get("station_id") in [1, 12, 999]:
         buffer_key = "important_sheet_car_ids"
         car_ids_buffer = request.session.get(buffer_key, [])
         if car.id not in car_ids_buffer:
@@ -2066,8 +2071,6 @@ def print_created_car_view(request, car_id):
             request.session[buffer_key] = car_ids_buffer
 
         request.session.modified = True
-    else:
-        important_print_url = reverse("print_created_car_info", kwargs={"car_id": car.id})
 
     return render(request, "defects_app/print_created_car.html", {
         "car": car,
