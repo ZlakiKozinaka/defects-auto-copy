@@ -2,52 +2,130 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Печать важного листа (6 машин)</title>
+    <title>Печать листа на 6 машин</title>
+
     <style>
-        @page { size: A4 portrait; margin: 10mm; }
-        body { font-family: Arial, sans-serif; margin: 0; color: #000; }
-        .no-print { text-align: center; margin: 12px 0; }
-        .btn { padding: 9px 16px; border: none; border-radius: 8px; background: #b9a7cc; cursor: pointer; }
-        .sheet { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        .sheet th, .sheet td { border: 1px solid #000; vertical-align: top; padding: 6px; font-size: 13px; }
-        .col-num { width: 6%; text-align: center; font-weight: bold; }
-        .col-info { width: 60%; }
-        .col-barcode { width: 34%; }
-        .car-row { height: 46mm; }
-        .label { font-weight: bold; }
-        .small { font-size: 12px; }
-        .barcode-wrap svg { width: 100%; height: 58px; }
-        @media print { .no-print { display: none; } }
+        @page {
+            size: A4 portrait;
+            margin: 8mm;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            color: #000;
+            background: #fff;
+            margin: 0;
+            padding: 0;
+        }
+
+        .no-print {
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            background: #b9a7cc;
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .main-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .main-table td {
+            border: 1px solid #000;
+            vertical-align: middle;
+            padding: 4px;
+        }
+
+        .num-col {
+            width: 8%;
+            text-align: center;
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .info-col {
+            width: 57%;
+            font-size: 14px;
+            line-height: 1.25;
+        }
+
+        .barcode-col {
+            width: 35%;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .car-row td {
+            height: 43mm;
+        }
+
+        .vin {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .barcode svg {
+            max-width: 100%;
+            height: 45px;
+        }
+
+        .date {
+            margin-top: 4px;
+            font-weight: bold;
+        }
+
+        @media print {
+            .no-print {
+                display: none;
+            }
+        }
     </style>
 </head>
+
 <body>
     <div class="no-print">
         <button class="btn" onclick="window.print()">Печать</button>
     </div>
 
-    <table class="sheet">
-        <thead>
-            <tr>
-                <th class="col-num">№</th>
-                <th class="col-info">Информация по комплектации</th>
-                <th class="col-barcode">Штрих-код / дата создания</th>
-            </tr>
-        </thead>
+    <table class="main-table">
         <tbody>
             {% for row in print_rows %}
                 <tr class="car-row">
-                    <td class="col-num">{{ forloop.counter }}</td>
-                    <td class="col-info">
-                        <div><span class="label">VIN:</span> {{ row.car.vin }}</div>
-                        <div><span class="label">Модель:</span> {{ row.plan_vin.model|default:"—" }}</div>
-                        <div><span class="label">Комплектация:</span> {{ row.plan_vin.komplektaciya|default:"—" }}</div>
-                        <div><span class="label">Кол-во мест:</span> {{ row.kolichestvo_mest }}</div>
-                        <div><span class="label">Цвет кузова:</span> {{ row.plan_vin.cvet_kuzova|default:"—" }}</div>
-                        <div><span class="label">Цвет салона:</span> {{ row.plan_vin.cvet_salona|default:"—" }}</div>
+                    <td class="num-col">{{ forloop.counter }}</td>
+
+                    <td class="info-col">
+                        <div class="vin">{{ row.car.vin }}</div>
+
+                        {% if row.plan_vin %}
+                            <div><strong>Модель:</strong> {{ row.plan_vin.model }}</div>
+                            <div><strong>Цвет кузова:</strong> {{ row.plan_vin.cvet_kuzova }}</div>
+                            <div><strong>Цвет салона:</strong> {{ row.plan_vin.cvet_salona }}</div>
+                            <div><strong>Количество мест:</strong> {{ row.kolichestvo_mest }}</div>
+                            <div><strong>Комплектация:</strong> {{ row.plan_vin.komplektaciya }}</div>
+                            <div><strong>ОТТС:</strong> {{ row.plan_vin.otts }}</div>
+                        {% else %}
+                            <div>Плановая информация по VIN не найдена.</div>
+                        {% endif %}
                     </td>
-                    <td class="col-barcode">
-                        <div class="barcode-wrap">{{ row.vin_barcode_svg|safe }}</div>
-                        <div class="small"><span class="label">Дата и время создания:</span> {{ row.car.data_sozdaniya|date:"d.m.Y H:i:s" }}</div>
+
+                    <td class="barcode-col">
+                        <div class="barcode">
+                            {{ row.vin_barcode_svg|safe }}
+                        </div>
+
+                        <div class="date">
+                            {{ row.car.data_sozdaniya|date:"d.m.Y H:i:s" }}
+                        </div>
                     </td>
                 </tr>
             {% endfor %}
@@ -56,7 +134,9 @@
 
     <script>
         window.onload = function () {
-            setTimeout(function () { window.print(); }, 300);
+            setTimeout(function () {
+                window.print();
+            }, 300);
         };
     </script>
 </body>

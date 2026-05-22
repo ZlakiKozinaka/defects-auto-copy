@@ -130,7 +130,7 @@
 <body>
     <div class="no-print">
         <button class="btn" onclick="window.print()">Печать</button>
-        <button class="btn" id="open-info-print">Печать важного листа</button>
+        {% if important_print_url %}<button class="btn" id="open-info-print">Печать листа на 6 машин</button>{% endif %}
         <a href="/create-car/?car_id={{ car.id }}" class="btn">Вернуться</a>
         <div id="info-print-status" style="margin-top:10px;font-size:14px;font-weight:bold;"></div>
     </div>
@@ -244,7 +244,7 @@
         function openInfoPrintWindow() {
             const infoPrintStatus = document.getElementById("info-print-status");
             if (!infoPrintUrl) {
-                infoPrintStatus.textContent = "Важный лист будет открыт автоматически после создания 6-й машины.";
+                infoPrintStatus.textContent = "Лист на 6 машин будет открыт автоматически после создания 6-й машины.";
                 infoPrintStatus.style.color = "#9a6700";
                 return;
             }
@@ -252,10 +252,10 @@
 
             if (infoWindow) {
                 infoWindowOpened = true;
-                infoPrintStatus.textContent = "Важный лист открыт в отдельном окне. Проверьте отправку на удаленный принтер.";
+                infoPrintStatus.textContent = "Лист на 6 машин открыт в отдельном окне. Проверьте отправку на удаленный принтер.";
                 infoPrintStatus.style.color = "#1a7f37";
             } else {
-                infoPrintStatus.textContent = "Не удалось открыть окно важного листа. Разрешите всплывающие окна и повторите печать.";
+                infoPrintStatus.textContent = "Не удалось открыть окно листа на 6 машин. Разрешите всплывающие окна и повторите печать.";
                 infoPrintStatus.style.color = "#b42318";
             }
         }
@@ -272,7 +272,10 @@
             }, 450);
         };
 
-        document.getElementById("open-info-print").addEventListener("click", openInfoPrintWindow);
+        const openInfoPrintBtn = document.getElementById("open-info-print");
+        if (openInfoPrintBtn) {
+            openInfoPrintBtn.addEventListener("click", openInfoPrintWindow);
+        }
     </script>
 </body>
 </html>

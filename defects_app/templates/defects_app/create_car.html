@@ -208,6 +208,17 @@
             margin: 5px 0 0 0;
             padding-left: 18px;
         }
+
+        .counter-bubble {
+            display: inline-block;
+            margin-left: 14px;
+            padding: 8px 14px;
+            border-radius: 20px;
+            background: #e9e1f1;
+            font-size: 15px;
+            font-weight: bold;
+            color: #3a2c4b;
+        }
     </style>
 </head>
 
@@ -223,6 +234,8 @@
             {% if is_manager %}
                 <a href="/manager/" class="btn" style="margin-left: 15px;">Панель начальника</a>
             {% endif %}
+
+            <span class="counter-bubble">В буфере 6-листника: {{ important_sheet_count }}/6</span>
 
             <form method="post" action="/accounts/logout/" style="display: inline;">
                 {% csrf_token %}
