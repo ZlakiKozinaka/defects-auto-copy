@@ -13,7 +13,7 @@ from django.db.models import Max
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.http import JsonResponse, HttpResponseForbidden, HttpResponseBadRequest
+from django.http import JsonResponse, HttpResponseForbidden, HttpResponseBadRequest, Http404
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout
@@ -232,6 +232,14 @@ def is_vh1_station(station_id=None, station_name=None):
     normalized_name = str(station_name).strip().lower().replace("-", " ")
     normalized_name = " ".join(normalized_name.split())
     return normalized_name in {"вх 1", "вх1", "входной контроль 1"}
+
+
+def get_vh1_station():
+    stations = Mesta.objects.all()
+    for station in stations:
+        if is_vh1_station(station_id=station.id, station_name=station.nazvanie):
+            return station
+    return None
 
 def get_user_departments(user):
     departments = set()
@@ -2282,7 +2290,15 @@ def manager_open_station_view(request, station_id):
     if response:
         return response
 
-    station = get_object_or_404(Mesta, id=station_id)
+    station = Mesta.objects.filter(id=station_id).first()
+    if not station:
+        if station_id == 13:
+            vh1_station = get_vh1_station()
+            if vh1_station:
+                request.session["station_id"] = vh1_station.id
+                request.session["station_name"] = vh1_station.nazvanie
+                return redirect("vh1")
+        raise Http404("No Mesta matches the given query.")
 
     request.session["station_id"] = station.id
     request.session["station_name"] = station.nazvanie
@@ -2290,9 +2306,29 @@ def manager_open_station_view(request, station_id):
     redirect_name = get_station_redirect_name(station.id)
     return redirect(redirect_name)
 
+
+@login_required
+def manager_open_vh1_station_view(request):
+    response = manager_required_view(request)
+    if response:
+        return response
+
+    station = get_vh1_station()
+    if not station:
+        messages.error(request, "Станция ВХ1 не найдена в справочнике мест.")
+        return redirect("manager_dashboard")
+
+    request.session["station_id"] = station.id
+    request.session["station_name"] = station.nazvanie
+    return redirect("vh1")
+
 @login_required
 def open_station_for_department_view(request, station_id):
-    station = get_object_or_404(Mesta, id=station_id)
+    station = Mesta.objects.filter(id=station_id).first()
+    if not station:
+        if station_id == 13:
+            return redirect("open_vh1_station_for_department")
+        raise Http404("No Mesta matches the given query.")
 
     user = request.user
     allowed = False
@@ -2305,7 +2341,6 @@ def open_station_for_department_view(request, station_id):
         if station_id in [1, 2, 8, 9, 10, 11] and can_create_defects(user):
             allowed = True
 
-        # ВХ1
         if can_create_defects(user) and is_vh1_station(station_id=station.id, station_name=station.nazvanie):
             allowed = True
 
@@ -2333,6 +2368,34 @@ def open_station_for_department_view(request, station_id):
 
     redirect_name = get_station_redirect_name(station.id)
     return redirect(redirect_name)
+
+
+@login_required
+def open_vh1_station_for_department_view(request):
+    station = get_vh1_station()
+    if not station:
+        return render_access_denied(request, "Станция ВХ1 не найдена в справочнике мест.")
+
+    user = request.user
+    allowed = False
+    if is_manager_user(user):
+        allowed = True
+    elif can_create_defects(user):
+        allowed = True
+
+    if not allowed:
+        return render_access_denied(request, "У вас нет доступа к выбранной станции для этого отдела.")
+
+    shift_id = request.session.get("shift_id")
+    shift_name = request.session.get("shift_name")
+    if not shift_id or not shift_name:
+        logout(request)
+        messages.error(request, "Смена не выбрана. Войдите заново.")
+        return redirect("login")
+
+    request.session["station_id"] = station.id
+    request.session["station_name"] = station.nazvanie
+    return redirect("vh1")
 
 @login_required
 def snp_orders_view(request):
