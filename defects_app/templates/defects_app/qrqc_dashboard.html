@@ -99,6 +99,11 @@
             grid-template-columns: 1fr 1.5fr 1.5fr;
             gap: 18px;
         }
+        .fourth-dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 18px;
+        }
 
         .bottom-dashboard-grid .report-card {
             width: auto;
@@ -572,6 +577,32 @@
             </a>
 
         </div>
+
+        <div class="fourth-dashboard-grid" style="margin-top: 18px;">
+            <a class="report-card" href="#">
+                <div class="card-title">СНП по дням (месяц)</div>
+                <div class="card-subtitle">Сколько машин находится на СНП по дням месяца</div>
+                <div class="chart-box">
+                    <canvas id="snpInMonthChart"></canvas>
+                </div>
+            </a>
+
+            <a class="report-card" href="#">
+                <div class="card-title">Уход на СНП по дням</div>
+                <div class="card-subtitle">Количество машин, ушедших на СНП за сутки</div>
+                <div class="chart-box">
+                    <canvas id="avgSnpPerDayChart"></canvas>
+                </div>
+            </a>
+
+            <a class="report-card" href="#">
+                <div class="card-title">Среднее по СНП (месяцы)</div>
+                <div class="card-subtitle">Среднее число ушедших на СНП по месяцам года</div>
+                <div class="chart-box">
+                    <canvas id="avgSnpPerMonthChart"></canvas>
+                </div>
+            </a>
+        </div>
     
     </div>
 
@@ -825,17 +856,103 @@
 
     <script>
         let snpModelsChart = null;
+        let snpInMonthChart = null;
+        let avgSnpPerDayChart = null;
+        let avgSnpPerMonthChart = null;
 
         async function loadSnpBlocks() {
             const month = getSelectedMonth();
             const day = getSelectedDayForApi(month);
 
-            const response = await fetch(`/reports/qrqc/snp-api/?day=${day}`);
+            const response = await fetch(`/reports/qrqc/snp-api/?day=${day}&month=${month}`);
             const data = await response.json();
 
             renderSnpModelsChart(data.models_chart);
             renderLatestDaySnpCars(data.latest_day_snp_cars);
             renderOldestSnpCars(data.oldest_cars);
+            renderSnpInMonthChart(data.snp_in_month_chart || []);
+            renderAvgSnpPerDayChart(data.avg_snp_per_day_chart || []);
+            renderAvgSnpPerMonthChart(data.avg_snp_per_month_chart || []);
+        }
+
+        function buildPastelBarChart(ctx, labels, values, label, rotateLabels = false) {
+            return new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: values,
+                        backgroundColor: "#d7c6e6",
+                        borderColor: "#b9a7cc",
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    devicePixelRatio: 3,
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0 }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: rotateLabels ? 90 : 0,
+                                minRotation: rotateLabels ? 90 : 0,
+                                autoSkip: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderSnpInMonthChart(items) {
+            const ctx = document.getElementById("snpInMonthChart");
+            if (!ctx) return;
+            if (snpInMonthChart) snpInMonthChart.destroy();
+
+            snpInMonthChart = buildPastelBarChart(
+                ctx,
+                items.map(item => item.day),
+                items.map(item => item.count),
+                "На СНП, шт",
+                false
+            );
+        }
+
+        function renderAvgSnpPerDayChart(items) {
+            const ctx = document.getElementById("avgSnpPerDayChart");
+            if (!ctx) return;
+            if (avgSnpPerDayChart) avgSnpPerDayChart.destroy();
+
+            avgSnpPerDayChart = buildPastelBarChart(
+                ctx,
+                items.map(item => item.day),
+                items.map(item => item.count),
+                "Ушло на СНП, шт/сутки",
+                false
+            );
+        }
+
+        function renderAvgSnpPerMonthChart(items) {
+            const ctx = document.getElementById("avgSnpPerMonthChart");
+            if (!ctx) return;
+            if (avgSnpPerMonthChart) avgSnpPerMonthChart.destroy();
+
+            avgSnpPerMonthChart = buildPastelBarChart(
+                ctx,
+                items.map(item => item.month),
+                items.map(item => item.avg_count),
+                "Среднее, шт/сутки",
+                true
+            );
         }
 
         function renderSnpModelsChart(items) {

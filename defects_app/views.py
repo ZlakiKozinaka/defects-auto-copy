@@ -3883,6 +3883,7 @@ def qrqc_snp_api_view(request):
     if response:
         return response
     selected_day = request.GET.get("day")
+    selected_month = request.GET.get("month") or timezone.now().strftime("%Y-%m")
 
     latest_status = StatusAvto.objects.filter(
         avto=OuterRef("pk")
@@ -4010,10 +4011,82 @@ def qrqc_snp_api_view(request):
         except ValueError:
             latest_day_snp_cars = []
 
+    snp_in_month_chart = []
+    avg_snp_per_day_chart = []
+    avg_snp_per_month_chart = []
+
+    try:
+        month_date = datetime.strptime(selected_month, "%Y-%m").date()
+        month_start = datetime.combine(month_date.replace(day=1), time.min)
+        days_in_month = monthrange(month_date.year, month_date.month)[1]
+        month_end = datetime.combine(date(month_date.year, month_date.month, days_in_month), time.max)
+
+        # 1) Сколько машин на СНП по дням выбранного месяца (остаток на конец дня)
+        for day_number in range(1, days_in_month + 1):
+            current_day = date(month_date.year, month_date.month, day_number)
+            current_day_end = datetime.combine(current_day, time.max)
+
+            latest_status_to_day = StatusAvto.objects.filter(
+                avto=OuterRef("pk"),
+                data_statusa__lte=current_day_end
+            ).order_by("-data_statusa")
+
+            day_snp_count = Avtomobili.objects.annotate(
+                last_status=Subquery(latest_status_to_day.values("status")[:1]),
+            ).filter(
+                last_status="СНП"
+            ).count()
+
+            snp_in_month_chart.append({
+                "day": f"{day_number:02}",
+                "count": day_snp_count,
+            })
+
+        # 2) Сколько машин ушло на СНП по дням выбранного месяца
+        for day_number in range(1, days_in_month + 1):
+            current_day = date(month_date.year, month_date.month, day_number)
+            day_start = datetime.combine(current_day, time.min)
+            day_end = datetime.combine(current_day, time.max)
+
+            day_snp_out_count = StatusAvto.objects.filter(
+                status="СНП",
+                data_statusa__gte=day_start,
+                data_statusa__lte=day_end,
+            ).values("avto_id").distinct().count()
+
+            avg_snp_per_day_chart.append({
+                "day": f"{day_number:02}",
+                "count": day_snp_out_count,
+            })
+
+        # 3) Среднее число ушедших на СНП по месяцам выбранного года
+        for month_number in range(1, 13):
+            month_days = monthrange(month_date.year, month_number)[1]
+            current_month_start = datetime.combine(date(month_date.year, month_number, 1), time.min)
+            current_month_end = datetime.combine(date(month_date.year, month_number, month_days), time.max)
+
+            month_snp_out_count = StatusAvto.objects.filter(
+                status="СНП",
+                data_statusa__gte=current_month_start,
+                data_statusa__lte=current_month_end,
+            ).values("avto_id").distinct().count()
+
+            month_avg = round(month_snp_out_count / month_days, 2) if month_days else 0
+
+            avg_snp_per_month_chart.append({
+                "month": f"{month_number:02}",
+                "avg_count": month_avg,
+            })
+    except ValueError:
+        pass
+
     return JsonResponse({
         "models_chart": models_chart,
         "oldest_cars": oldest_cars,
         "latest_day_snp_cars": latest_day_snp_cars,
+        "snp_in_month_chart": snp_in_month_chart,
+        "avg_snp_per_day_chart": avg_snp_per_day_chart,
+        "avg_snp_per_month_chart": avg_snp_per_month_chart,
     })
 
 PRODUCTION_INTERVALS = [
